@@ -1,8 +1,12 @@
 ﻿using System.Text.Json;
+
 using Amazon.SQS;
 using Amazon.SQS.Model;
+
 using Customers.Consumer.Messages;
+
 using MediatR;
+
 using Microsoft.Extensions.Options;
 
 namespace Customers.Consumer;
@@ -41,17 +45,15 @@ public class QueueConsumerService : BackgroundService
         var messageType = message.MessageAttributes["MessageType"].StringValue;
         _logger.LogInformation($"Message Id: {message.MessageId}");
         _logger.LogInformation($"Message Body: {message.Body}");
-        
+
         var type = Type.GetType($"Customers.Consumer.Messages.{messageType}");
         if (type is null)
         {
           _logger.LogWarning($"Unknown message type: {messageType}");
         }
-
-        var typedMessage = (ISqsMessage)JsonSerializer.Deserialize(message.Body, type)!;
-
         try
         {
+          var typedMessage = (ISqsMessage)JsonSerializer.Deserialize(message.Body, type)!;
           await _mediator.Send(typedMessage, stoppingToken);
         }
         catch (Exception e)
